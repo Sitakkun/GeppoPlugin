@@ -27,7 +27,7 @@ public class GeppoPlayer implements Listener {
         this.interval = 1;
         this.multiply = 1;
         this.velocity_Y = 0.5D;
-        this.limit = 10;
+        this.limit = 3;
         this.particleFlg = false;
         this.mode = "normal";
         this.strength = "normal";

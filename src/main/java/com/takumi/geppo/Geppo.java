@@ -84,30 +84,30 @@ public final class Geppo extends JavaPlugin implements Listener {
         if(ChronoUnit.SECONDS.between(playerData.getBeforeJumpTime(),nowJumpTime) > playerData.getInterval()){
             setGeppoCount(player.getName(),true);
         }
-        else{
-            setGeppoCount(player.getName(),false);
-        }
+        //else{
+        //    setGeppoCount(player.getName(),false);
+        //}
 
         if(playerData.getJumpCount() < playerData.getLimit() && e.isSneaking()){
-            if(!(player.isOnGround()) && player.getFallDistance() >= 0.001){
+            if(!(player.isOnGround()) && player.getFallDistance() >= 0.05){
                 // ジャンプの実行
                 player.setVelocity(player.getLocation().getDirection().multiply(playerData.getMultiply()));
                 if(playerData.getMode().equals("normal")){
-                    player.setVelocity(new Vector(player.getVelocity().getX(), playerData.getVelocity_Y(), player.getVelocity().getZ()));
+                    player.setVelocity(new Vector(player.getVelocity().getX() / 2, playerData.getVelocity_Y(), player.getVelocity().getZ() / 2));
                 }
                 else if(playerData.getMode().equals("random")){
                     double velocity_X = 0.0;
                     double velocity_Y = 0.0;
                     double velocity_Z = 0.0;
                     if(playerData.getStrength().equals("normal")){
-                        velocity_X = ((Math.random() * 2.0) - 1.0) + player.getVelocity().getX();
-                        velocity_Y = (Math.random() * 2.0) - 0.75;
-                        velocity_Z = ((Math.random() * 2.0) - 1.0) + player.getVelocity().getZ();
+                        velocity_X = ((Math.random() * 0.5) - 0.25) + player.getVelocity().getX() / 2.0;
+                        velocity_Y = (Math.random() * 0.75) - 0.05;
+                        velocity_Z = ((Math.random() * 0.5) - 0.25) + player.getVelocity().getZ() / 2.0;
                     }
                     else if(playerData.getStrength().equals("rocket")){
-                        velocity_X = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getX();
-                        velocity_Y = (Math.random() * 5.0) - 1.0;
-                        velocity_Z = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getZ();
+                        velocity_X = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getX() / 2.0;
+                        velocity_Y = (Math.random() * 5.0) - 0.3;
+                        velocity_Z = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getZ() / 2.0;
                     }
                     player.setVelocity(new Vector(velocity_X, velocity_Y, velocity_Z));
                 }
@@ -117,6 +117,8 @@ public final class Geppo extends JavaPlugin implements Listener {
                 }
                 // 前回ジャンプした時間を記録
                 setJumpTime(player.getName());
+                // ジャンプした回数を記録
+                setGeppoCount(player.getName(),false);
             }
         }
 
@@ -225,7 +227,7 @@ public final class Geppo extends JavaPlugin implements Listener {
     protected boolean setLimit(String playerName, int limit){
         if(playerName.equals("@a")){
             for(GeppoPlayer p : playerHashtable.values()){
-                p.setLimit(limit*2);
+                p.setLimit(limit);
                 p.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + p.getPlayer().getName() + "のジャンプ上限数が" + String.valueOf(limit) + "回に変更されました。");
             }
             return true;
@@ -235,7 +237,7 @@ public final class Geppo extends JavaPlugin implements Listener {
             return false;
         }
         GeppoPlayer player = playerHashtable.get(playerName);
-        player.setLimit(limit*2);
+        player.setLimit(limit);
         player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のジャンプ上限数が" + String.valueOf(limit) + "回に変更されました。");
 
         return true;
