@@ -27,7 +27,7 @@ public final class Geppo extends JavaPlugin implements Listener {
     public void onEnable() {
         // Plugin startup logic
         this.instance = this;
-        this.getCommand("geppo").setExecutor(this);
+        this.getCommand("geppo").setExecutor(new CommandListener(this));
         this.getCommand("geppo").setTabCompleter(new TabComp());
         Bukkit.getPluginManager().registerEvents(this,this);
 
@@ -36,54 +36,6 @@ public final class Geppo extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
-    }
-
-    // コマンド処理
-    @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String Label, String[] args){
-        if(cmd.getName().equals("geppo")){
-            if(!(sender.isOp())){
-                sender.sendMessage(ChatColor.YELLOW+"[GeppoPlugin]:このコマンドの実行にはOP権限が必要です。");
-            }
-            else if (args.length > 2) {
-                sender.sendMessage(ChatColor.YELLOW+"[GeppoPlugin]:引数が多いです。");
-            }
-            else if (args.length < 1) {
-                sender.sendMessage(ChatColor.YELLOW+"[GeppoPlugin]:引数が少ないです。");
-            }
-            else {
-                if(args.length == 1){
-                    if(args[0].equals("init")){
-                        initPlayerHashtable();
-                        sender.sendMessage(ChatColor.BLUE+"[GeppoPlugin]:プラグインが初期化されました。");
-                    }
-                    else{
-                        sender.sendMessage(ChatColor.RED+"[GeppoPlugin]:コマンドの引数が足りないか、有効ではありません。");
-                    }
-                }
-                else if(args.length == 2){
-                    String plaerName = args[1];
-                    if(args[0].equals("on")){
-                        boolean result = setAllowFlg(plaerName,true);
-                        if(!result){
-                            sender.sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + plaerName + "は存在しません。または引数が間違っています。");
-                        }
-                        useflag = true;
-                    }
-                    else if(args[0].equals("off")){
-                        boolean result = setAllowFlg(plaerName,false);
-                        if(!result){
-                            sender.sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + plaerName + "は存在しません。または引数が間違っています。");
-                        }
-                        useflag = false;
-                    }
-                    else{
-                        sender.sendMessage(ChatColor.YELLOW+"[GeppoPlugin]:引数に誤りがあります。");
-                    }
-                }
-            }
-        }
-        return  true;
     }
 
     //Events
@@ -116,32 +68,44 @@ public final class Geppo extends JavaPlugin implements Listener {
 
         LocalDateTime nowJumpTime = LocalDateTime.now();
 
-        e.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + ChronoUnit.SECONDS.between(playerData.getBeforeJumpTime(),nowJumpTime));
-
-        if(ChronoUnit.SECONDS.between(playerData.getBeforeJumpTime(),nowJumpTime) > 1){
+        if(ChronoUnit.SECONDS.between(playerData.getBeforeJumpTime(),nowJumpTime) > playerData.getInterval()){
             setGeppoCount(player.getName(),true);
         }
         else{
             setGeppoCount(player.getName(),false);
         }
 
-        if(playerData.getJumpCount() < 10){
+        if(playerData.getJumpCount() < playerData.getLimit() && e.isSneaking()){
             if(!(player.isOnGround()) && player.getFallDistance() >= 0.001){
-                player.setVelocity(player.getLocation().getDirection().multiply(5));
-                player.setVelocity(new Vector(player.getVelocity().getX(), 3D, player.getVelocity().getZ()));
-                Location location = player.getLocation();
-                for (int degree = 260; degree < 280; degree++) {
-                    double radians = Math.toRadians(degree);
-                    double x = Math.cos(radians);
-                    double z = Math.sin(radians);
-                    location.add(x,0,z);
-                    location.getWorld().spawnParticle(Particle.FLAME, location,1,0.1,0.5,0.1);
-                    location.subtract(x,0,z);
+                // ジャンプの実行
+                player.setVelocity(player.getLocation().getDirection().multiply(playerData.getMultiply()));
+                if(playerData.getMode().equals("normal")){
+                    player.setVelocity(new Vector(player.getVelocity().getX(), playerData.getVelocity_Y(), player.getVelocity().getZ()));
                 }
+                else if(playerData.getMode().equals("random")){
+                    double velocity_X = (Math.random() * 10.0) - 5.0;
+                    double velocity_Y = (Math.random() * 5.0) - 1.0;
+                    double velocity_Z = (Math.random() * 10.0) - 5.0;
+                    if(velocity_Y == 0.0){
+                        velocity_X = 0;
+                        velocity_Y = 10.0;
+                        velocity_Z = 0;
+                    }
+                    else if(velocity_Y == 4.0){
+                        velocity_X = 0;
+                        velocity_Y = -10.0;
+                        velocity_Z = 0;
+                    }
+                    player.setVelocity(new Vector(velocity_X, velocity_Y, velocity_Z));
+                }
+                // パーティクルの再生を判定
+                if(playerData.getParticleFlg()){
+                    spawnParticle(player);
+                }
+                // 前回ジャンプした時間を記録
+                setJumpTime(player.getName());
             }
         }
-
-        setJumpTime(player.getName());
 
     }
 
@@ -155,36 +119,13 @@ public final class Geppo extends JavaPlugin implements Listener {
         return  playerHashtable;
     }
 
-    //Private Method
-    private void initPlayerHashtable(){
+    //Protected Method
+    protected void initPlayerHashtable(){
         playerHashtable.clear();
         Bukkit.getOnlinePlayers().stream().forEach(p -> playerHashtable.put(p.getName(),new GeppoPlayer(p)));
     }
 
-    private void setGeppoCount(String playerName,boolean resetFlg){
-        if(!playerHashtable.containsKey(playerName)){
-            return;
-        }
-        GeppoPlayer player = playerHashtable.get(playerName);
-        if(resetFlg){
-            player.resetJumpCount();
-        }
-        else{
-            player.jumpCountUp();
-        }
-        playerHashtable.put(playerName,player);
-    }
-
-    private void setJumpTime(String playerName){
-        if(!playerHashtable.containsKey(playerName)){
-            return;
-        }
-        GeppoPlayer player = playerHashtable.get(playerName);
-        player.setBeforeJumpTime(LocalDateTime.now());
-        playerHashtable.put(playerName,player);
-    }
-
-    private boolean setAllowFlg(String playerName, boolean allowFlg){
+    protected boolean setAllowFlg(String playerName, boolean allowFlg){
         String onMessage = "に月歩の力が付与されました";
         String offMessage = "は月歩の力が剥奪されました";
 
@@ -217,11 +158,153 @@ public final class Geppo extends JavaPlugin implements Listener {
         return true;
     }
 
+    protected boolean setInterval(String playerName,int intervalSec){
+        if(playerName.equals("@a")){
+            for(GeppoPlayer p : playerHashtable.values()){
+                p.setInterval(intervalSec);
+                p.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + p.getPlayer().getName() + "のインターバルが" + String.valueOf(intervalSec) + "秒に変更されました。");
+            }
+            return true;
+        }
+
+        if(!playerHashtable.containsKey(playerName)){
+            return false;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        player.setInterval(intervalSec);
+        player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のインターバルが" + String.valueOf(intervalSec) + "秒に変更されました。");
+
+        return true;
+    }
+
+    protected boolean setStrength(String playerName, String strength){
+        if(playerName.equals("@a")) {
+            for (GeppoPlayer p : playerHashtable.values()) {
+                boolean result = p.changeJumpStrength(strength);
+                if(result){
+                    p.getPlayer().sendMessage(ChatColor.BLUE + "[GeppoPlugin]:" + p.getPlayer().getName() + "のジャンプ力が[" + strength + "]に変更されました。");
+                }
+                else{
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if(!playerHashtable.containsKey(playerName)){
+            return false;
+        }
+
+        GeppoPlayer player = playerHashtable.get(playerName);
+        boolean result = player.changeJumpStrength(strength);
+
+        if(result){
+            player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のジャンプ力が[" + strength + "]に変更されました。");
+        }
+        else {
+            return false;
+        }
+
+        return true;
+
+    }
+
+    protected boolean setLimit(String playerName, int limit){
+        if(playerName.equals("@a")){
+            for(GeppoPlayer p : playerHashtable.values()){
+                p.setLimit(limit*2);
+                p.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + p.getPlayer().getName() + "のジャンプ上限数が" + String.valueOf(limit) + "回に変更されました。");
+            }
+            return true;
+        }
+
+        if(!playerHashtable.containsKey(playerName)){
+            return false;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        player.setLimit(limit*2);
+        player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のジャンプ上限数が" + String.valueOf(limit) + "回に変更されました。");
+
+        return true;
+    }
+
+    protected boolean setParticleFlg(String playerName, boolean particleFlg){
+        if(playerName.equals("@a")){
+            for(GeppoPlayer p : playerHashtable.values()){
+                p.setParticleFlg(particleFlg);
+                p.getPlayer().sendMessage(String.format(ChatColor.BLUE + "[GeppoPlugin]:" + p.getPlayer().getName() + String.format("パーティクルが[%s]になりました。",particleFlg ? "ON" : "OFF")));
+            }
+            return true;
+        }
+
+        if(!playerHashtable.containsKey(playerName)){
+            return false;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        player.setParticleFlg(particleFlg);
+        player.getPlayer().sendMessage(String.format(ChatColor.BLUE + "[GeppoPlugin]:" + player.getPlayer().getName() + String.format("パーティクルが[%s]になりました。",particleFlg ? "ON" : "OFF")));
+        return true;
+    }
+
+    protected boolean setMode(String playerName, String mode){
+        if(playerName.equals("@a")){
+            for(GeppoPlayer p : playerHashtable.values()){
+                p.setMode(mode);
+                p.getPlayer().sendMessage(String.format(ChatColor.BLUE + "[GeppoPlugin]:" + p.getPlayer().getName() + String.format("モードが[%s]になりました。",mode.toUpperCase())));
+            }
+            return true;
+        }
+
+        if(!playerHashtable.containsKey(playerName)){
+            return false;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        player.setMode(mode);
+        player.getPlayer().sendMessage(String.format(ChatColor.BLUE + "[GeppoPlugin]:" + player.getPlayer().getName() + String.format("モードが[%s]になりました。",mode.toUpperCase())));
+        return true;
+    }
+
+    // Private Method
+    private void setGeppoCount(String playerName,boolean resetFlg){
+        if(!playerHashtable.containsKey(playerName)){
+            return;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        if(resetFlg){
+            player.resetJumpCount();
+        }
+        else{
+            player.jumpCountUp();
+        }
+        playerHashtable.put(playerName,player);
+    }
+
+    private void setJumpTime(String playerName){
+        if(!playerHashtable.containsKey(playerName)){
+            return;
+        }
+        GeppoPlayer player = playerHashtable.get(playerName);
+        player.setBeforeJumpTime(LocalDateTime.now());
+        playerHashtable.put(playerName,player);
+    }
+
     private GeppoPlayer getPlayerInfo(String playerName){
         if(!playerHashtable.containsKey(playerName)){
             return null;
         }
         GeppoPlayer player = playerHashtable.get(playerName);
         return playerHashtable.get(playerName);
+    }
+
+    private void spawnParticle(Player p){
+        Location location = p.getLocation();
+        for (int degree = 260; degree < 280; degree++) {
+            double radians = Math.toRadians(degree);
+            double x = Math.cos(radians);
+            double z = Math.sin(radians);
+            location.add(x,0,z);
+            location.getWorld().spawnParticle(Particle.FLAME, location,1,0.1,0.5,0.1);
+            location.subtract(x,0,z);
+        }
     }
 }
