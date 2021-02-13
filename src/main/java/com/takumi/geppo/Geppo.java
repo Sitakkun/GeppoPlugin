@@ -54,6 +54,19 @@ public final class Geppo extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onPlayerRespawn(PlayerRespawnEvent e){
+        Bukkit.getScheduler().runTaskLater(this, task ->{
+            String playerName = e.getPlayer().getName();
+            if(!playerHashtable.containsKey(playerName)){
+                return;
+            }
+            GeppoPlayer player = playerHashtable.get(playerName);
+            player.resetJumpCount();
+            playerHashtable.put(playerName,player);
+        }, 5L);
+    }
+
+    @EventHandler
     public void onSneak(PlayerToggleSneakEvent e){
         Player player = e.getPlayer();
         GeppoPlayer playerData = getPlayerInfo(player.getName());
