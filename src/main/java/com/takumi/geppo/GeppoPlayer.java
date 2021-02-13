@@ -17,6 +17,7 @@ public class GeppoPlayer implements Listener {
     private int limit;
     private boolean particleFlg;
     private String mode;
+    private String strength;
 
     public GeppoPlayer(Player player){
         this.player = player;
@@ -29,6 +30,7 @@ public class GeppoPlayer implements Listener {
         this.limit = 10;
         this.particleFlg = false;
         this.mode = "normal";
+        this.strength = "normal";
     }
 
     //Getter
@@ -60,6 +62,8 @@ public class GeppoPlayer implements Listener {
 
     public String getMode() { return mode; }
 
+    public String getStrength() { return strength; }
+
     //Setter
     public void setBeforeJumpTime(LocalDateTime beforeJumpTime){
         this.beforeJumpTime = beforeJumpTime;
@@ -88,15 +92,17 @@ public class GeppoPlayer implements Listener {
         jumpCount = 0;
     }
 
-    public boolean changeJumpStrength(String mode){
-        if(!(mode.equals("normal") || mode.equals("rocket"))){
+    public boolean changeJumpStrength(String strength){
+        if(!(strength.equals("normal") || strength.equals("rocket"))){
             return false;
         }
-        if(mode.equals("normal")){
+        if(strength.equals("normal")){
+            this.strength = strength;
             this.multiply = 1;
             this.velocity_Y = 0.5D;
         }
-        else if(mode.equals("rocket")){
+        else if(strength.equals("rocket")){
+            this.strength = strength;
             this.multiply = 5;
             this.velocity_Y = 2D;
         }

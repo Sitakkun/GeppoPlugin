@@ -96,18 +96,18 @@ public final class Geppo extends JavaPlugin implements Listener {
                     player.setVelocity(new Vector(player.getVelocity().getX(), playerData.getVelocity_Y(), player.getVelocity().getZ()));
                 }
                 else if(playerData.getMode().equals("random")){
-                    double velocity_X = (Math.random() * 10.0) - 5.0;
-                    double velocity_Y = (Math.random() * 5.0) - 1.0;
-                    double velocity_Z = (Math.random() * 10.0) - 5.0;
-                    if(velocity_Y == 0.0){
-                        velocity_X = 0;
-                        velocity_Y = 10.0;
-                        velocity_Z = 0;
+                    double velocity_X = 0.0;
+                    double velocity_Y = 0.0;
+                    double velocity_Z = 0.0;
+                    if(playerData.getStrength().equals("normal")){
+                        velocity_X = ((Math.random() * 2.0) - 1.0) + player.getVelocity().getX();
+                        velocity_Y = (Math.random() * 2.0) - 0.75;
+                        velocity_Z = ((Math.random() * 2.0) - 1.0) + player.getVelocity().getZ();
                     }
-                    else if(velocity_Y == 4.0){
-                        velocity_X = 0;
-                        velocity_Y = -10.0;
-                        velocity_Z = 0;
+                    else if(playerData.getStrength().equals("rocket")){
+                        velocity_X = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getX();
+                        velocity_Y = (Math.random() * 5.0) - 1.0;
+                        velocity_Z = ((Math.random() * 10.0) - 5.0) + player.getVelocity().getZ();
                     }
                     player.setVelocity(new Vector(velocity_X, velocity_Y, velocity_Z));
                 }
@@ -195,7 +195,7 @@ public final class Geppo extends JavaPlugin implements Listener {
             for (GeppoPlayer p : playerHashtable.values()) {
                 boolean result = p.changeJumpStrength(strength);
                 if(result){
-                    p.getPlayer().sendMessage(ChatColor.BLUE + "[GeppoPlugin]:" + p.getPlayer().getName() + "のジャンプ力が[" + strength + "]に変更されました。");
+                    p.getPlayer().sendMessage(ChatColor.BLUE + "[GeppoPlugin]:" + p.getPlayer().getName() + "のジャンプ力が[" + strength.toUpperCase() + "]に変更されました。");
                 }
                 else{
                     return false;
@@ -212,7 +212,7 @@ public final class Geppo extends JavaPlugin implements Listener {
         boolean result = player.changeJumpStrength(strength);
 
         if(result){
-            player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のジャンプ力が[" + strength + "]に変更されました。");
+            player.getPlayer().sendMessage(ChatColor.BLUE+"[GeppoPlugin]:" + player.getPlayer().getName() + "のジャンプ力が[" + strength.toUpperCase() + "]に変更されました。");
         }
         else {
             return false;
